@@ -1,7 +1,6 @@
 package com.rmg.productcatalogservice.controllers;
 
 import com.rmg.productcatalogservice.dtos.ProductDto;
-import com.rmg.productcatalogservice.models.Product;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
