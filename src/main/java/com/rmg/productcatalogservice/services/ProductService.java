@@ -1,34 +1,51 @@
 package com.rmg.productcatalogservice.services;
 
+import com.rmg.productcatalogservice.clients.FakeStoreApiClient;
 import com.rmg.productcatalogservice.dtos.FakeStoreProductDto;
 import com.rmg.productcatalogservice.models.Category;
 import com.rmg.productcatalogservice.models.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RequestCallback;
+import org.springframework.web.client.ResponseExtractor;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ProductService implements IProductService {
     @Autowired
-    RestTemplateBuilder restTemplateBuilder;
+    private RestTemplateBuilder restTemplateBuilder;
+    @Autowired
+    private FakeStoreApiClient fakeStoreApiClient;
 
     @Override
     public Product getProductById(Long id){
-        RestTemplate restTemplate = restTemplateBuilder.build();
-
-        ResponseEntity<FakeStoreProductDto> fakeStoreProductDtoResponseEntity = restTemplate
-                .getForEntity("https://fakestoreapi.com/products/{productId}", FakeStoreProductDto.class,id);
-        if(fakeStoreProductDtoResponseEntity.getBody() != null && fakeStoreProductDtoResponseEntity.getStatusCode().equals(HttpStatusCode.valueOf(200))){
-            return from(fakeStoreProductDtoResponseEntity.getBody());
-        }
-        return null;
+        return from(fakeStoreApiClient.getProductById(id));
     }
 
+
+    @Override
+    public List<Product> getAllProducts(){
+        List<Product> products = new ArrayList<>();
+
+        FakeStoreProductDto[] fakeStoreProductDtos = fakeStoreApiClient.getAllProducts();
+
+        for(FakeStoreProductDto fakeStoreProductDto : fakeStoreProductDtos){
+            Product product = from(fakeStoreProductDto);
+            products.add(product);
+        }
+
+        return products;
+    }
     private Product from(FakeStoreProductDto fakeStoreProductDto) {
         Product product = Product.builder()
                 .name(fakeStoreProductDto != null ? fakeStoreProductDto.getTitle() : null)
@@ -43,13 +60,30 @@ public class ProductService implements IProductService {
         return product;
     }
 
+    private FakeStoreProductDto from(Product product){
+        FakeStoreProductDto fakeStoreProductDto = new FakeStoreProductDto();
+        fakeStoreProductDto.setId(product.getId());
+        fakeStoreProductDto.setTitle(product.getName());
+        fakeStoreProductDto.setDescription(product.getDescription());
+        fakeStoreProductDto.setImage(product.getImageUrl());
+        fakeStoreProductDto.setPrice(product.getPrice());
+
+        if(product.getCategory() != null){
+            fakeStoreProductDto.setCategory(product.getCategory().getName());
+        }
+
+        return fakeStoreProductDto;
+
+    }
     @Override
-    public List<Product> getAllProducts(){
+    public Product createProduct(Product product){
         return null;
     }
 
     @Override
-    public Product createProduct(Product product){
-        return null;
+    public Product replaceProduct(Long id, Product product) {
+        FakeStoreProductDto request = from(product);
+
+        return from(fakeStoreApiClient.replaceProduct(id,request));
     }
 }

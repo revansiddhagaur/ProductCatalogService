@@ -1,7 +1,9 @@
 package com.rmg.productcatalogservice.controllers;
 
 import com.rmg.productcatalogservice.dtos.CategoryDto;
+import com.rmg.productcatalogservice.dtos.FakeStoreProductDto;
 import com.rmg.productcatalogservice.dtos.ProductDto;
+import com.rmg.productcatalogservice.models.Category;
 import com.rmg.productcatalogservice.models.Product;
 import com.rmg.productcatalogservice.services.IProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,13 +19,19 @@ import java.util.List;
 @RestController
 @RequestMapping("/products")
 public class ProductController {
-//https://www.scaler.com/academy/mentee-dashboard/class/241887/session?joinSession=1
+
     @Autowired
     private IProductService productService;
 
     @GetMapping
     public List<ProductDto> getAllProducts() {
-        return new ArrayList<ProductDto>();
+        List<ProductDto> productDtos = new ArrayList<>();
+        List<Product> products = productService.getAllProducts();
+        for (Product product : products) {
+            ProductDto productDto = from(product);
+            productDtos.add(productDto);
+        }
+        return productDtos;
     }
 
     @GetMapping("{id}")
@@ -42,8 +50,21 @@ public class ProductController {
         return new ResponseEntity<>(productDto,headers, HttpStatus.OK);
         }
         catch (IllegalArgumentException iae){
-            return new ResponseEntity<>(null,HttpStatus.BAD_REQUEST);
+            throw iae;
         }
+    }
+
+
+    @PostMapping
+    public ProductDto createProduct(@RequestBody ProductDto productDto) {
+        return productDto;
+    }
+
+    @PutMapping("{id}")
+    public ProductDto replaceProduct(@PathVariable Long id, @RequestBody ProductDto productDto) {
+        Product product = from(productDto);
+        Product result = productService.replaceProduct(id, product);
+        return from(result);
     }
 
     private ProductDto from(Product product) {
@@ -66,13 +87,20 @@ public class ProductController {
                 .build();
     }
 
-    @PostMapping
-    public ProductDto createProduct(@RequestBody ProductDto productDto) {
-        return productDto;
-    }
+    private Product from(ProductDto productDto){
+        Product product = new Product();
 
-    @PutMapping("{id}")
-    public ProductDto replaceProduct(@PathVariable Long id, @RequestBody ProductDto productDto) {
-        return productDto;
+        product.setName(productDto.getName());
+        product.setDescription(productDto.getDescription());
+        product.setImageUrl(productDto.getImageUrl());
+        product.setPrice(productDto.getPrice());
+
+        if(productDto.getCategory() != null){
+            Category category = new Category();
+            category.setName(productDto.getCategory().getName());
+            product.setCategory(category);
+        }
+
+        return product;
     }
 }
